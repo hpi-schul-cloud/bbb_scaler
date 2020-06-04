@@ -22,19 +22,26 @@ namespace HPI.BBB.Autoscaler.APIs
         {
             log.LogInformation($"Get workload for '{ip}'");
 
-            using HttpClient client = new HttpClient();
+            HttpClient client = new HttpClient();
 
             Workload workload = new Workload();
             workload.CPUUtilization = await GetCPUUtilization(client, ip, graphanaKey);
 
             log.LogInformation($"Get Metrics of '{ip}'");
-            string url = $"http://{ip}:9100/metrics";
+            string url = $"https://{ip}:9100/metrics";
+
+            // TODO Add Certificate Validation
+            log.LogInformation($"Turn cert validation off of '{ip}'");
+            using var httpClientHandler = new HttpClientHandler();
+            client = new HttpClient(httpClientHandler);
+            
+            httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic",
                     Convert.ToBase64String(Encoding.ASCII.GetBytes($"{nodeExporterUserName}:{nodeExporterPassword}")));
 
 
             HttpResponseMessage result = null;
-            
+
             try
             {
                 result = await client.GetAsync(new Uri(url)).ConfigureAwait(false);
