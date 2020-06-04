@@ -77,7 +77,7 @@ namespace HPI.BBB.Autoscaler.Utils
 
         internal static void ScaleMemoryUp(ILogger log, List<WorkloadMachineTuple> totalWorkload, IonosAPI ionos, string ionosDataCenter)
         {
-            var dyingMemoryMachines = totalWorkload.Where(m => m.Workload.MemoryUtilization > MAX_ALLOWED_MEMORY_WORKLOAD && m.Machine.Properties.Ram + 1024 < MAX_WORKER_MEMORY);
+            var dyingMemoryMachines = totalWorkload.Where(m => m.Workload.MemoryUtilization > MAX_ALLOWED_MEMORY_WORKLOAD && m.Machine.Properties.Ram + 1024 <= MAX_WORKER_MEMORY);
             log.LogInformation($"Found '{dyingMemoryMachines.Count()}' machines to scale memory up");
             dyingMemoryMachines.AsParallel().ForAll(async m =>
             {
@@ -89,7 +89,7 @@ namespace HPI.BBB.Autoscaler.Utils
         }
         internal static void ScaleCPUUp(ILogger log, List<WorkloadMachineTuple> totalWorkload, IonosAPI ionos, string ionosDataCenter)
         {
-            var dyingCPUMachines = totalWorkload.Where(m => m.Workload.CPUUtilization > MAX_ALLOWED_CPU_WORKLOAD && m.Machine.Properties.Cores + 1 < MAX_WORKER_CPU);
+            var dyingCPUMachines = totalWorkload.Where(m => m.Workload.CPUUtilization > MAX_ALLOWED_CPU_WORKLOAD && m.Machine.Properties.Cores + 1 <= MAX_WORKER_CPU);
             log.LogInformation($"Found '{dyingCPUMachines.Count()}' machines to scale cpu up");
             dyingCPUMachines.AsParallel().ForAll(async m =>
             {

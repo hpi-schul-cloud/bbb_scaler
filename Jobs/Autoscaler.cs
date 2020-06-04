@@ -48,6 +48,8 @@ namespace HPI.BBB.Autoscaler.Jobs
             string ionosDataCenter = Environment.GetEnvironmentVariable("IONOS_DATACENTER");
             string bbbKey = Environment.GetEnvironmentVariable("BBB_PASS");
             string graphanaKey = Environment.GetEnvironmentVariable("GRAPHANA_PASS");
+            string neUser = Environment.GetEnvironmentVariable("NE_BASIC_AUTH_USER");
+            string nePass = Environment.GetEnvironmentVariable("NE_BASIC_AUTH_PASS");
 
 
             if (string.IsNullOrEmpty(ionosUser) || string.IsNullOrEmpty(ionosPass) || string.IsNullOrEmpty(ionosDataCenter))
@@ -64,6 +66,8 @@ namespace HPI.BBB.Autoscaler.Jobs
                 ionosDataCenter = Configuration.GetSection("IONOS").GetSection("DATACENTER").Value;
                 bbbKey = Configuration.GetSection("BBB").GetSection("PASS").Value;
                 graphanaKey = Configuration.GetSection("GRAPHANA").GetSection("PASS").Value;
+                neUser = Configuration.GetSection("NODE_EXPORTER").GetSection("USER").Value;
+                nePass = Configuration.GetSection("NODE_EXPORTER").GetSection("PASS").Value;
             }
 
             log.LogInformation("Init Ionos API");
@@ -121,7 +125,7 @@ namespace HPI.BBB.Autoscaler.Jobs
 
                     log.LogInformation("Get workload of machines");
                     var totalWorkload = runningMachines.AsParallel()
-                        .Select(async m => new WorkloadMachineTuple(m, await NodeExporterAPI.GetWorkLoadAsync(log, m.SecondaryIP ?? m.PrimaryIP, graphanaKey).ConfigureAwait(false)))
+                        .Select(async m => new WorkloadMachineTuple(m, await NodeExporterAPI.GetWorkLoadAsync(log, m.SecondaryIP ?? m.PrimaryIP, graphanaKey, neUser, nePass).ConfigureAwait(false)))
                         .Select(m => m.Result).ToList();
 
                     float avarageMemoryWorkload = totalWorkload.Average(m => m.Workload.MemoryUtilization);

@@ -1,12 +1,15 @@
 ﻿using HPI.BBB.Autoscaler.Models;
 using HPI.BBB.Autoscaler.Models.Prometheus;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
 using System.Globalization;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace HPI.BBB.Autoscaler.APIs
 {
@@ -14,30 +17,24 @@ namespace HPI.BBB.Autoscaler.APIs
     {
 
 
-        public static async System.Threading.Tasks.Task<Workload> GetWorkLoadAsync(ILogger log, string ip, string graphanaKey)
+
+        public static async Task<Workload> GetWorkLoadAsync(ILogger log, string ip, string graphanaKey, string nodeExporterUserName, string nodeExporterPassword)
         {
             log.LogInformation($"Get workload for '{ip}'");
 
             using HttpClient client = new HttpClient();
-            //100 - (avg by(mode)(irate(node_cpu_seconds_total{ mode = "idle"}[1m]))*100)
-            string cpuQuery = $"100 - (avg by (instance) (irate(node_cpu_seconds_total{{instance=\"{ip}:9100\",job=\"bbb\",mode=\"idle\"}}[5m])) * 100)";
-            string url = $"https://jitsi.dev.messenger.schule/grafana/api/datasources/proxy/1/api/v1/query?query={cpuQuery}";
-            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphanaKey);
-            var result = await client.GetAsync(url).ConfigureAwait(false);
-            string json = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-            var promResult = JsonConvert.DeserializeObject<PrometheusResult>(json);
 
             Workload workload = new Workload();
-
-            workload.CPUUtilization = promResult.Data.Result
-                //If result then there is only one
-                .FirstOrDefault()?
-                //First value is unix time, second is result
-                .Value?.LastOrDefault() ?? 0;
+            workload.CPUUtilization = await GetCPUUtilization(client, ip, graphanaKey);
 
             log.LogInformation($"Get Metrics of '{ip}'");
-            url = $"http://{ip}:9100/metrics";
+            string url = $"http://{ip}:9100/metrics";
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic",
+                    Convert.ToBase64String(Encoding.ASCII.GetBytes($"{nodeExporterUserName}:{nodeExporterPassword}")));
+
+
+            HttpResponseMessage result = null;
+            
             try
             {
                 result = await client.GetAsync(new Uri(url)).ConfigureAwait(false);
@@ -47,6 +44,7 @@ namespace HPI.BBB.Autoscaler.APIs
                 log.LogError(e, "ip: {0}, url: {1}", ip, url);
                 throw;
             }
+
             string metrics = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             log.LogInformation($"Parse cpu seconds of '{ip}'");
@@ -80,6 +78,25 @@ namespace HPI.BBB.Autoscaler.APIs
             log.LogInformation($"Memory utilization of '{ip}' is {workload.MemoryUtilization}");
 
             return workload;
+        }
+
+        private static async Task<float> GetCPUUtilization(HttpClient client, string ip, string graphanaKey)
+        {
+            //100 - (avg by(mode)(irate(node_cpu_seconds_total{ mode = "idle"}[1m]))*100)
+            //(avg by(instance)(irate(node_cpu_seconds_total{instance = "{ip},job="bbb"}[5m])))
+            string cpuQuery = $"(avg by (instance) (irate(node_cpu_seconds_total{{instance=\"{ip}:9100\"}}[5m])))";
+            string url = $"https://jitsi.dev.messenger.schule/grafana/api/datasources/proxy/1/api/v1/query?query={cpuQuery}";
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphanaKey);
+            var result = await client.GetAsync(url).ConfigureAwait(false);
+            string json = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            var promResult = JsonConvert.DeserializeObject<PrometheusResult>(json);
+
+            return promResult.Data.Result
+                 //If result then there is only one
+                 .FirstOrDefault()?
+                 //First value is unix time, second is result
+                 .Value?.LastOrDefault() ?? 0;
         }
     }
 }
