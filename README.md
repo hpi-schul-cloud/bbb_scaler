@@ -5,7 +5,7 @@
 The bbb_scaler scales big blue button intances in the ionos cloud using
 metrics of node exporter, big blue button api and prometheus.
 
-This project is involved as autoscaler in the [terraform setup] (https://github.com/schul-cloud/bbb-deployment) of schul cloud.
+This project is involved as autoscaler in the [terraform setup](https://github.com/schul-cloud/bbb-deployment) of schul cloud.
 
 ## Requirements
 
@@ -68,4 +68,4 @@ You don't need additional tools because the file already contains all build util
 
 ## Docker Compose File
 
-Setup all secrets in the compose file using the [environment variable section] (https://docs.docker.com/compose/environment-variables/)
+Setup all secrets in the compose file using the [environment variable section](https://docs.docker.com/compose/environment-variables/)
