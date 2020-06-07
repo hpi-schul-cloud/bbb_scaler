@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using HPI.BBB.Autoscaler.Models.BBB;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,7 +9,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
-using Xml2CSharp;
 
 namespace HPI.BBB.Autoscaler.APIs
 {

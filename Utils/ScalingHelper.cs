@@ -2,11 +2,9 @@
 using HPI.BBB.Autoscaler.Models;
 using HPI.BBB.Autoscaler.Models.Ionos;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace HPI.BBB.Autoscaler.Utils
 {
@@ -31,7 +29,7 @@ namespace HPI.BBB.Autoscaler.Utils
                         .Skip(MINIMUM_ACTIVE_MACHINES)
                         .Select(async m => new MachineWorkloadStatsTuple(m.Machine, m.Workload, await bbb.GetMeetingsAsync(m.Machine.PrimaryIP).ConfigureAwait(false)))
                         .Select(res => res.Result)
-                        .Where(m => (m.Workload.MemoryUtilization < MIN_ALLOWED_MEMORY_WORKLOAD ||
+                        .Where(m => (m.Workload.MemoryUtilization < MIN_ALLOWED_MEMORY_WORKLOAD &&
                         m.Workload.CPUUtilization < MIN_ALLOWED_CPU_WORKLOAD) && m.Machine.Properties.Cores <= DEFAULT_WORKER_CPU &&
                         m.Machine.Properties.Ram <= DEFAULT_WORKER_MEMORY && m.Stats.Sum(u => u.ParticipantCount) == 0).ToList();
 

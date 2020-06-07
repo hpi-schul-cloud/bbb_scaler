@@ -1,7 +1,7 @@
-﻿using HPI.BBB.Autoscaler.Models.Ionos;
+﻿using HPI.BBB.Autoscaler.Models.BBB;
+using HPI.BBB.Autoscaler.Models.Ionos;
 using System;
 using System.Collections.Generic;
-using Xml2CSharp;
 
 namespace HPI.BBB.Autoscaler.Models
 {

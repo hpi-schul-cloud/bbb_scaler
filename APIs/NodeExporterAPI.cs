@@ -1,7 +1,6 @@
 ﻿using HPI.BBB.Autoscaler.Models;
 using HPI.BBB.Autoscaler.Models.Prometheus;
 using HPI.BBB.Autoscaler.Utils;
-using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;

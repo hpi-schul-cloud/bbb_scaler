@@ -1,8 +1,6 @@
 ﻿using HPI.BBB.Autoscaler.APIs;
 using HPI.BBB.Autoscaler.Models;
-using HPI.BBB.Autoscaler.Models.Ionos;
 using HPI.BBB.Autoscaler.Utils;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
