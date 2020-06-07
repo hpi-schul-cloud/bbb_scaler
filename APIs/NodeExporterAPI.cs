@@ -1,5 +1,6 @@
 ﻿using HPI.BBB.Autoscaler.Models;
 using HPI.BBB.Autoscaler.Models.Prometheus;
+using HPI.BBB.Autoscaler.Utils;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -25,7 +26,8 @@ namespace HPI.BBB.Autoscaler.APIs
             HttpClient client = new HttpClient();
 
             Workload workload = new Workload();
-            workload.CPUUtilization = await GetCPUUtilization(client, ip, graphanaKey);
+            workload.CPUUtilization = await GetCPUUtilization(client, ip, graphanaKey) ??
+                float.Parse(ConfigReader.GetValue("MIN_ALLOWED_CPU_WORKLOAD", "DEFAULT", "MIN_ALLOWED_CPU_WORKLOAD"));
 
             log.LogInformation($"Get Metrics of '{ip}'");
             string url = $"https://{ip}:9100/metrics";
@@ -34,11 +36,10 @@ namespace HPI.BBB.Autoscaler.APIs
             log.LogInformation($"Turn cert validation off of '{ip}'");
             using var httpClientHandler = new HttpClientHandler();
             client = new HttpClient(httpClientHandler);
-            
+
             httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic",
                     Convert.ToBase64String(Encoding.ASCII.GetBytes($"{nodeExporterUserName}:{nodeExporterPassword}")));
-
 
             HttpResponseMessage result = null;
 
@@ -61,7 +62,6 @@ namespace HPI.BBB.Autoscaler.APIs
 
             Regex totalMem = new Regex(rgx);
             var memtotalRes = totalMem.Match(metrics);
-
 
             workload.TotalMemory = long.Parse(string.IsNullOrEmpty(memtotalRes.Groups["totalmem"].Value) ? "1" : memtotalRes.Groups["totalmem"].Value,
                  NumberStyles.Number | NumberStyles.AllowExponent, CultureInfo.InvariantCulture);
@@ -87,11 +87,11 @@ namespace HPI.BBB.Autoscaler.APIs
             return workload;
         }
 
-        private static async Task<float> GetCPUUtilization(HttpClient client, string ip, string graphanaKey)
+        private static async Task<float?> GetCPUUtilization(HttpClient client, string ip, string graphanaKey)
         {
             //100 - (avg by(mode)(irate(node_cpu_seconds_total{ mode = "idle"}[1m]))*100)
             //(avg by(instance)(irate(node_cpu_seconds_total{instance = "{ip},job="bbb"}[5m])))
-            string cpuQuery = $"(avg by (instance) (irate(node_cpu_seconds_total{{instance=\"{ip}:9100\"}}[5m])))";
+            string cpuQuery = $"1 - (avg by (instance) (irate(node_cpu_seconds_total{{instance=\"{ip}:9100\", mode=\"idle\"}}[5m])))";
             string url = $"https://jitsi.dev.messenger.schule/grafana/api/datasources/proxy/1/api/v1/query?query={cpuQuery}";
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphanaKey);
             var result = await client.GetAsync(url).ConfigureAwait(false);
@@ -103,7 +103,7 @@ namespace HPI.BBB.Autoscaler.APIs
                  //If result then there is only one
                  .FirstOrDefault()?
                  //First value is unix time, second is result
-                 .Value?.LastOrDefault() ?? 0;
+                 .Value?.LastOrDefault();
         }
     }
 }

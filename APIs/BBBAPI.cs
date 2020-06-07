@@ -1,16 +1,12 @@
 ﻿using Microsoft.Extensions.Logging;
-using Renci.SshNet;
-using SshNet.Security.Cryptography;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Xml;
 using System.Xml.Serialization;
 using Xml2CSharp;
 
@@ -32,8 +28,8 @@ namespace HPI.BBB.Autoscaler.APIs
         {
             string encodedParameters = string.Concat(apiName, parameter, BBBKey);
 
-            SHA1 sha1 = new SHA1();
-            var hash = sha1.ComputeHash(Encoding.UTF8.GetBytes(encodedParameters));
+            
+            var hash = SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(encodedParameters));
 
             StringBuilder builder = new StringBuilder();
             hash.Select(p => builder.Append(p.ToString("x2"))).ToList();

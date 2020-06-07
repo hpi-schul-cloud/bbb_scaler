@@ -1,4 +1,5 @@
 ﻿using HPI.BBB.Autoscaler.Models.Ionos;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
@@ -23,11 +24,12 @@ namespace HPI.BBB.Autoscaler.APIs
 
         public readonly string NIC_GET_URL = "https://api.ionos.com/cloudapi/v5/datacenters/{0}/servers/{1}/nics/{2}";
         public readonly string DATACENTER_GET_URL = "https://api.ionos.com/cloudapi/v5/datacenters/{0}/servers/{1}/start";
-
+        private readonly ILogger log;
         private static HttpClient httpClient;
 
-        public IonosAPI(string user, string pw)
+        public IonosAPI(ILogger log, string user, string pw)
         {
+            this.log = log;
             USER = user;
             PW = pw;
         }
@@ -113,17 +115,25 @@ namespace HPI.BBB.Autoscaler.APIs
             }
 
             HttpClient client = SetupHttpClient();
-
             Uri uri = new Uri(string.Format(CultureInfo.InvariantCulture, MACHINE_GETALL_URL, dataCenterId));
-            var result = await client.GetAsync(uri).ConfigureAwait(false);
 
-            if ((int)result.StatusCode == 429)
-                result = await RetryGetAsync(client, uri).ConfigureAwait(false);
+            try
+            {
+                var result = await client.GetAsync(uri).ConfigureAwait(false);
 
-            string json = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
-            IonosObjectCollection machine = JsonConvert.DeserializeObject<IonosObjectCollection>(json);
+                if ((int)result.StatusCode == 429)
+                    result = await RetryGetAsync(client, uri).ConfigureAwait(false);
 
-            return machine.Items;
+                string json = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+                IonosObjectCollection machine = JsonConvert.DeserializeObject<IonosObjectCollection>(json);
+
+                return machine.Items;
+            }
+            catch (Exception e)
+            {
+                log.LogError(e, "Uri: {0}", uri);
+                throw;
+            }
         }
 
 
@@ -145,15 +155,25 @@ namespace HPI.BBB.Autoscaler.APIs
             HttpClient client = SetupHttpClient();
 
             Uri uri = new Uri(string.Format(CultureInfo.InvariantCulture, MACHINE_GET_URL + "?depth=2", dataCenterId, machineId));
-            var result = await client.GetAsync(uri).ConfigureAwait(false);
 
-            if ((int)result.StatusCode == 429)
-                result = await RetryGetAsync(client, uri).ConfigureAwait(false);
 
-            string json = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
-            IonosMachine machine = JsonConvert.DeserializeObject<IonosMachine>(json);
+            try
+            {
+                var result = await client.GetAsync(uri).ConfigureAwait(false);
 
-            return machine;
+                if ((int)result.StatusCode == 429)
+                    result = await RetryGetAsync(client, uri).ConfigureAwait(false);
+
+                string json = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+                IonosMachine machine = JsonConvert.DeserializeObject<IonosMachine>(json);
+
+                return machine;
+            }
+            catch (Exception e)
+            {
+                log.LogError(e, "Uri: {0}", uri);
+                throw;
+            }
         }
 
 

@@ -16,12 +16,9 @@ namespace HPI.BBB.Autoscaler.Jobs
 {
     public class Autoscaler : IHostedService
     {
-        private static readonly int WAITINGTIME = int.Parse(string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAITINGTIME")) ? "300000"
-            : Environment.GetEnvironmentVariable("WAITINGTIME"), CultureInfo.InvariantCulture);
-        private static readonly float MAX_ALLOWED_MEMORY_WORKLOAD = float.Parse(string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MAX_ALLOWED_MEMORY_WORKLOAD")) ? "0.35"
-            : Environment.GetEnvironmentVariable("MAX_ALLOWED_MEMORY_WORKLOAD"), CultureInfo.InvariantCulture);
-        private static readonly float MAX_ALLOWED_CPU_WORKLOAD = float.Parse(string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MAX_ALLOWED_CPU_WORKLOAD")) ? "0.35"
-            : Environment.GetEnvironmentVariable("MAX_ALLOWED_CPU_WORKLOAD"), CultureInfo.InvariantCulture);
+        private static readonly int WAITINGTIME = int.Parse(ConfigReader.GetValue("WAITINGTIME", "DEFAULT", "WAITINGTIME"), CultureInfo.InvariantCulture);
+        private static readonly float MAX_ALLOWED_MEMORY_WORKLOAD = float.Parse(ConfigReader.GetValue("MAX_ALLOWED_MEMORY_WORKLOAD", "DEFAULT", "MAX_ALLOWED_MEMORY_WORKLOAD"), CultureInfo.InvariantCulture);
+        private static readonly float MAX_ALLOWED_CPU_WORKLOAD = float.Parse(ConfigReader.GetValue("MAX_ALLOWED_CPU_WORKLOAD", "DEFAULT", "MAX_ALLOWED_CPU_WORKLOAD"), CultureInfo.InvariantCulture);
 
         public Autoscaler(ILogger<Autoscaler> logger)
         {
@@ -55,23 +52,18 @@ namespace HPI.BBB.Autoscaler.Jobs
             if (string.IsNullOrEmpty(ionosUser) || string.IsNullOrEmpty(ionosPass) || string.IsNullOrEmpty(ionosDataCenter))
             {
                 log.LogInformation("Load dev environment variables");
-                var builder = new ConfigurationBuilder();
-                builder.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
-                builder.AddUserSecrets<Program>();
-
-                var Configuration = builder.Build();
-                ionosUser = Configuration.GetSection("IONOS").GetSection("USER").Value;
-                ionosPass = Configuration.GetSection("IONOS").GetSection("PASS").Value;
-                ionosDataCenter = Configuration.GetSection("IONOS").GetSection("DATACENTER").Value;
-                bbbKey = Configuration.GetSection("BBB").GetSection("PASS").Value;
-                graphanaKey = Configuration.GetSection("GRAPHANA").GetSection("PASS").Value;
-                neUser = Configuration.GetSection("NODE_EXPORTER").GetSection("USER").Value;
-                nePass = Configuration.GetSection("NODE_EXPORTER").GetSection("PASS").Value;
+                ionosUser = ConfigReader.GetConfigurationValue("IONOS", "USER");
+                ionosPass = ConfigReader.GetConfigurationValue("IONOS", "PASS");
+                ionosDataCenter = ConfigReader.GetConfigurationValue("IONOS", "DATACENTER");
+                bbbKey = ConfigReader.GetConfigurationValue("BBB", "PASS");
+                graphanaKey = ConfigReader.GetConfigurationValue("GRAPHANA", "PASS");
+                neUser = ConfigReader.GetConfigurationValue("NODE_EXPORTER", "USER");
+                nePass = ConfigReader.GetConfigurationValue("NODE_EXPORTER", "PASS");
             }
 
             log.LogInformation("Init Ionos API");
-            IonosAPI ionos = new IonosAPI(ionosUser, ionosPass);
+            IonosAPI ionos = new IonosAPI(log, ionosUser, ionosPass);
 
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -138,7 +130,9 @@ namespace HPI.BBB.Autoscaler.Jobs
                         log.LogInformation("Wake up sleeping machine");
                         var sleepingMachines = machines.Where(m => !runningMachines.Contains(m));
                         var toBeTurnedOn = sleepingMachines.FirstOrDefault();
-                        await ionos.TurnMachineOn(toBeTurnedOn.Id, ionosDataCenter).ConfigureAwait(false);
+
+                        if (toBeTurnedOn != null)
+                            await ionos.TurnMachineOn(toBeTurnedOn.Id, ionosDataCenter).ConfigureAwait(false);
                     }
 
                     //Shut all machines down that have no more memory to reduce an broken the threshold
