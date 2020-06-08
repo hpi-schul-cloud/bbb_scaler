@@ -15,8 +15,7 @@ namespace HPI.BBB.Autoscaler.APIs
 {
     class NodeExporterAPI
     {
-
-
+        private static readonly string GRAFANA_ENDPOINT = ConfigReader.GetValue("GRAFANA_ENDPOINT", "GRAFANA", "ENDPOINT");
 
         public static async Task<Workload> GetWorkLoadAsync(ILogger log, string ip, string graphanaKey, string nodeExporterUserName, string nodeExporterPassword)
         {
@@ -25,7 +24,7 @@ namespace HPI.BBB.Autoscaler.APIs
             HttpClient client = new HttpClient();
 
             Workload workload = new Workload();
-            workload.CPUUtilization = await GetCPUUtilization(client, ip, graphanaKey) ??
+            workload.CPUUtilization = await GetCPUUtilization(log, client, ip, graphanaKey) ??
                 float.Parse(ConfigReader.GetValue("MIN_ALLOWED_CPU_WORKLOAD", "DEFAULT", "MIN_ALLOWED_CPU_WORKLOAD"));
 
             log.LogInformation($"Get Metrics of '{ip}'");
@@ -86,19 +85,30 @@ namespace HPI.BBB.Autoscaler.APIs
             return workload;
         }
 
-        private static async Task<float?> GetCPUUtilization(HttpClient client, string ip, string graphanaKey)
+        private static async Task<float?> GetCPUUtilization(ILogger log, HttpClient client, string ip, string grafanaKey)
         {
             //100 - (avg by(mode)(irate(node_cpu_seconds_total{ mode = "idle"}[1m]))*100)
             //(avg by(instance)(irate(node_cpu_seconds_total{instance = "{ip},job="bbb"}[5m])))
             string cpuQuery = $"1 - (avg by (instance) (irate(node_cpu_seconds_total{{instance=\"{ip}:9100\", mode=\"idle\"}}[5m])))";
-            string url = $"https://jitsi.dev.messenger.schule/grafana/api/datasources/proxy/1/api/v1/query?query={cpuQuery}";
-            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphanaKey);
+
+            string url = $"{GRAFANA_ENDPOINT}{cpuQuery}";
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", grafanaKey);
             var result = await client.GetAsync(url).ConfigureAwait(false);
             string json = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
 
+            try
+            {
+                result.EnsureSuccessStatusCode();
+            }
+            catch (Exception e)
+            {
+                log.LogError(e, "Message: {0}, Statuscode: {1}", json, result?.StatusCode);
+                return null;
+            }
+
             var promResult = JsonConvert.DeserializeObject<PrometheusResult>(json);
 
-            return promResult.Data.Result
+            return promResult?.Data?.Result
                  //If result then there is only one
                  .FirstOrDefault()?
                  //First value is unix time, second is result

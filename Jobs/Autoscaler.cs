@@ -42,7 +42,7 @@ namespace HPI.BBB.Autoscaler.Jobs
             string ionosPass = Environment.GetEnvironmentVariable("IONOS_PASS");
             string ionosDataCenter = Environment.GetEnvironmentVariable("IONOS_DATACENTER");
             string bbbKey = Environment.GetEnvironmentVariable("BBB_PASS");
-            string graphanaKey = Environment.GetEnvironmentVariable("GRAPHANA_PASS");
+            string graphanaKey = Environment.GetEnvironmentVariable("GRAFANA_PASS");
             string neUser = Environment.GetEnvironmentVariable("NE_BASIC_AUTH_USER");
             string nePass = Environment.GetEnvironmentVariable("NE_BASIC_AUTH_PASS");
 
@@ -55,7 +55,7 @@ namespace HPI.BBB.Autoscaler.Jobs
                 ionosPass = ConfigReader.GetConfigurationValue("IONOS", "PASS");
                 ionosDataCenter = ConfigReader.GetConfigurationValue("IONOS", "DATACENTER");
                 bbbKey = ConfigReader.GetConfigurationValue("BBB", "PASS");
-                graphanaKey = ConfigReader.GetConfigurationValue("GRAPHANA", "PASS");
+                graphanaKey = ConfigReader.GetConfigurationValue("GRAFANA", "PASS");
                 neUser = ConfigReader.GetConfigurationValue("NODE_EXPORTER", "USER");
                 nePass = ConfigReader.GetConfigurationValue("NODE_EXPORTER", "PASS");
             }
