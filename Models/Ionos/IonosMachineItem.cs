@@ -6,7 +6,7 @@ namespace HPI.BBB.Autoscaler.Models.Ionos
     public class IonosMachineItem
     {
         [JsonProperty("id")]
-        public Guid Id { get; set; }
+        public String Id { get; set; }
 
         [JsonProperty("type")]
         public string Type { get; set; }

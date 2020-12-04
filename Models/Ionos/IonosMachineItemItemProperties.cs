@@ -36,7 +36,7 @@ namespace HPI.BBB.Autoscaler.Models.Ionos
         public string AvailabilityZone { get; set; }
 
         [JsonProperty("image", NullValueHandling = NullValueHandling.Ignore)]
-        public Guid? Image { get; set; }
+        public string Image { get; set; }
 
         [JsonProperty("imagePassword")]
         public object ImagePassword { get; set; }

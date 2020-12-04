@@ -104,8 +104,8 @@ namespace HPI.BBB.Autoscaler.Jobs
                             return m;
                         })
                         .Select(m => m.Result)
-                        //Filter for Scalelite
-                        .Where(m => !m.Properties.Name.ToUpperInvariant().Contains("SCALELITE", StringComparison.InvariantCultureIgnoreCase)
+                        //Filter for BBB
+                        .Where(m => !m.Properties.Name.ToUpperInvariant().Contains("BBB", StringComparison.InvariantCultureIgnoreCase)
                             && m.PrimaryIP != null)
                         .ToList();
 

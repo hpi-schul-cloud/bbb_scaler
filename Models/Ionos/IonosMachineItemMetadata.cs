@@ -15,7 +15,7 @@ namespace HPI.BBB.Autoscaler.Models.Ionos
         public string CreatedBy { get; set; }
 
         [JsonProperty("createdByUserId")]
-        public Guid CreatedByUserId { get; set; }
+        public string CreatedByUserId { get; set; }
 
         [JsonProperty("lastModifiedDate")]
         public DateTimeOffset LastModifiedDate { get; set; }
@@ -24,7 +24,7 @@ namespace HPI.BBB.Autoscaler.Models.Ionos
         public string LastModifiedBy { get; set; }
 
         [JsonProperty("lastModifiedByUserId")]
-        public Guid LastModifiedByUserId { get; set; }
+        public string LastModifiedByUserId { get; set; }
 
         [JsonProperty("state")]
         public string State { get; set; }
