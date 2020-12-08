@@ -105,7 +105,7 @@ namespace HPI.BBB.Autoscaler.Jobs
                         })
                         .Select(m => m.Result)
                         //Filter for BBB
-                        .Where(m => !m.Properties.Name.ToUpperInvariant().Contains("BBB", StringComparison.InvariantCultureIgnoreCase)
+                        .Where(m => m.Properties.Name.ToUpperInvariant().Contains("BBB", StringComparison.InvariantCultureIgnoreCase)
                             && m.PrimaryIP != null)
                         .ToList();
 
