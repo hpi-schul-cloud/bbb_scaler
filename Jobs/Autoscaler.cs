@@ -40,20 +40,20 @@ namespace HPI.BBB.Autoscaler.Jobs
 
             string ionosUser = Environment.GetEnvironmentVariable("IONOS_USER");
             string ionosPass = Environment.GetEnvironmentVariable("IONOS_PASS");
-            string ionosDataCenter = Environment.GetEnvironmentVariable("IONOS_DATACENTER");
+            string[] ionosDataCenterIds = Environment.GetEnvironmentVariable("IONOS_DATACENTER").Split(",");
             string bbbKey = Environment.GetEnvironmentVariable("BBB_PASS");
             string graphanaKey = Environment.GetEnvironmentVariable("GRAFANA_PASS");
             string neUser = Environment.GetEnvironmentVariable("NE_BASIC_AUTH_USER");
             string nePass = Environment.GetEnvironmentVariable("NE_BASIC_AUTH_PASS");
 
 
-            if (string.IsNullOrEmpty(ionosUser) || string.IsNullOrEmpty(ionosPass) || string.IsNullOrEmpty(ionosDataCenter))
+            if (string.IsNullOrEmpty(ionosUser) || string.IsNullOrEmpty(ionosPass) || ionosDataCenterIds == null || ionosDataCenterIds.Any( id => string.IsNullOrEmpty(id)))
             {
                 log.LogInformation("Load dev environment variables");
 
                 ionosUser = ConfigReader.GetConfigurationValue("IONOS", "USER");
                 ionosPass = ConfigReader.GetConfigurationValue("IONOS", "PASS");
-                ionosDataCenter = ConfigReader.GetConfigurationValue("IONOS", "DATACENTER");
+                ionosDataCenterIds = ConfigReader.GetConfigurationValue("IONOS", "DATACENTER").Split(",");
                 bbbKey = ConfigReader.GetConfigurationValue("BBB", "PASS");
                 graphanaKey = ConfigReader.GetConfigurationValue("GRAFANA", "PASS");
                 neUser = ConfigReader.GetConfigurationValue("NODE_EXPORTER", "USER");
@@ -67,55 +67,13 @@ namespace HPI.BBB.Autoscaler.Jobs
             {
                 try
                 {
+                    ScalingHelper.EnsureMinimumRunningServers(log, ionos, ionosDataCenterIds);
 
-                    log.LogInformation("Get internet ip");
-
-                    using var web = new WebClient();
-                    string externalip = web.DownloadString("http://icanhazip.com")
-                                                       .Replace("\n", "", true, CultureInfo.InvariantCulture)
-                                                       .Replace("\r", "", true, CultureInfo.InvariantCulture)
-                                                       .Trim();
-
-#if DEBUG
-                    externalip = "81.173.115.126";
-#endif
-
-                    //Get all machines 
                     log.LogInformation("Get machines");
-                    var ml = await ionos.GetAllMachines(ionosDataCenter).ConfigureAwait(false);
-
-                    //Get IPs
-                    log.LogInformation("Get machine details");
-                    var machines = ml.AsParallel().Select(async m => await ionos.GetMachineDetails(m.Id, ionosDataCenter).ConfigureAwait(false)).Select(m => m.Result)
-                        .Select(async m =>
-                        {
-
-                            if (m.Entities.Nics.Items.Count > 0)
-                                m.PrimaryIP = m.Entities.Nics.Items
-                                .FirstOrDefault(p => p.Properties.Name.ToUpperInvariant() == "public".ToUpperInvariant())
-                                .Properties.Ips.FirstOrDefault();
-
-
-                            if (m.Entities.Nics.Items.Count > 1)
-                                m.SecondaryIP = m.Entities.Nics.Items
-                                .FirstOrDefault(p => p.Properties.Name.ToUpperInvariant() != "public".ToUpperInvariant())
-                                .Properties.Ips.FirstOrDefault();
-
-                            return m;
-                        })
-                        .Select(m => m.Result)
-                        //Filter for BBB
-                        .Where(m => m.Properties.Name.ToUpperInvariant().Contains("BBB", StringComparison.InvariantCultureIgnoreCase)
-                            && m.PrimaryIP != null)
-                        .ToList();
-
-
-                    log.LogInformation("Get running machines");
-                    var runningMachines = machines.Where(m => m.Properties.VmState == "RUNNING").ToList();
-
-                    log.LogInformation("Get workload of machines");
+                    var machines = await IonosHelper.GetMachinesByDataCenter(log, ionos, ionosDataCenterIds);
+                    var runningMachines = machines.Where(m => m.Machine.Properties.VmState == "RUNNING");
                     var totalWorkload = runningMachines.AsParallel()
-                        .Select(async m => new WorkloadMachineTuple(m, await NodeExporterAPI.GetWorkLoadAsync(log, m.SecondaryIP ?? m.PrimaryIP, graphanaKey, neUser, nePass).ConfigureAwait(false)))
+                        .Select(async m => new WorkloadMachineTuple(m.DataCenter, m.Machine, await NodeExporterAPI.GetWorkLoadAsync(log, m.Machine.SecondaryIP ?? m.Machine.PrimaryIP, graphanaKey, neUser, nePass).ConfigureAwait(false)))
                         .Select(m => m.Result).ToList();
 
                     float avarageMemoryWorkload = totalWorkload.Average(m => m.Workload.MemoryUtilization);
@@ -130,32 +88,31 @@ namespace HPI.BBB.Autoscaler.Jobs
                         var toBeTurnedOn = sleepingMachines.FirstOrDefault();
 
                         if (toBeTurnedOn != null)
-                            await ionos.TurnMachineOn(toBeTurnedOn.Id, ionosDataCenter).ConfigureAwait(false);
+                            await ionos.TurnMachineOn(toBeTurnedOn.Machine.Id, toBeTurnedOn.DataCenter).ConfigureAwait(false);
                     }
-
-                    //Shut all machines down that have no more memory to reduce an broken the threshold
-                    log.LogInformation("Connect to host and get current sessions");
+                    
                     BBBAPI bbb = new BBBAPI(log, bbbKey);
-                    ScalingHelper.ShutDown(log, totalWorkload, bbb, ionos, ionosDataCenter);
+                    ScalingHelper.ShutDown(log, totalWorkload, bbb, ionos);
 
                     //Scale all machines down that have addional memory received
-                    ScalingHelper.ScaleMemoryDown(log, totalWorkload, ionos, ionosDataCenter);
+                    ScalingHelper.ScaleMemoryDown(log, totalWorkload, bbb, ionos);
 
                     //Scale all machines down that have addional cpu received
-                    ScalingHelper.ScaleCPUDown(log, totalWorkload, ionos, ionosDataCenter);
+                    ScalingHelper.ScaleCPUDown(log, totalWorkload, bbb, ionos);
 
                     //Scale all machines up thats memory are over the max workload threshold
-                    ScalingHelper.ScaleMemoryUp(log, totalWorkload, ionos, ionosDataCenter);
+                    ScalingHelper.ScaleMemoryUp(log, totalWorkload, ionos);
 
                     //Scale all machines up thats cpu utilization is over the max workload threshold
-                    ScalingHelper.ScaleCPUUp(log, totalWorkload, ionos, ionosDataCenter);
+                    ScalingHelper.ScaleCPUUp(log, totalWorkload, ionos);
 
                     log.LogInformation($"Sleep for '{WAITINGTIME}' milliseconds ('{WAITINGTIME / 60000} minutes')");
+                    
                     Thread.Sleep(WAITINGTIME);
                 }
                 catch (Exception e)
                 {
-                    log.LogError(e, "Exepthion thrown:");
+                    log.LogError(e, "Exeption thrown:");
 
                     log.LogInformation($"Sleep for '{WAITINGTIME}' milliseconds ('{WAITINGTIME / 60000} minutes')");
                     Thread.Sleep(WAITINGTIME);
