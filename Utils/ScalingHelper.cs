@@ -12,7 +12,6 @@ namespace HPI.BBB.Autoscaler.Utils
     public class ScalingHelper
     {
 
-        private static readonly int MINIMUM_ACTIVE_MACHINES = int.Parse(ConfigReader.GetValue("MINIMUM_ACTIVE_MACHINES", "DEFAULT", "MINIMUM_ACTIVE_MACHINES"), CultureInfo.InvariantCulture);
         private static readonly float MAX_ALLOWED_MEMORY_WORKLOAD = float.Parse(ConfigReader.GetValue("MAX_ALLOWED_MEMORY_WORKLOAD", "DEFAULT", "MAX_ALLOWED_MEMORY_WORKLOAD"), CultureInfo.InvariantCulture);
         private static readonly float MAX_ALLOWED_CPU_WORKLOAD = float.Parse(ConfigReader.GetValue("MAX_ALLOWED_CPU_WORKLOAD", "DEFAULT", "MAX_ALLOWED_CPU_WORKLOAD"), CultureInfo.InvariantCulture);
         private static readonly float MIN_ALLOWED_MEMORY_WORKLOAD = float.Parse(ConfigReader.GetValue("MIN_ALLOWED_MEMORY_WORKLOAD", "DEFAULT", "MIN_ALLOWED_MEMORY_WORKLOAD"), CultureInfo.InvariantCulture);
@@ -27,7 +26,7 @@ namespace HPI.BBB.Autoscaler.Utils
             var shutDown = totalWorkload
                         .OrderByDescending(m => m.Workload.MemoryUtilization)
                         .ThenByDescending(m => m.Workload.CPUUtilization)
-                        .Skip(MINIMUM_ACTIVE_MACHINES)
+                        .Skip(TimeHelper.GetMinimumActiveMachines())
                         .Select(async m => new MachineWorkloadStatsTuple(m.DataCenter, m.Machine, m.Workload, await bbb.GetMeetingsAsync(m.Machine.PrimaryIP).ConfigureAwait(false)))
                         .Select(res => res.Result)
                         .Where(m => (m.Workload.MemoryUtilization < MIN_ALLOWED_MEMORY_WORKLOAD ||
@@ -42,7 +41,7 @@ namespace HPI.BBB.Autoscaler.Utils
         {
             var machines = await IonosHelper.GetMachinesByDataCenter(log, ionos, ionosDataCenterIds);
             var runningMachines = machines.Where(m => m.Machine.Properties.VmState == "RUNNING").ToList();
-            var toStart = MINIMUM_ACTIVE_MACHINES - runningMachines.Count;
+            var toStart = TimeHelper.GetMinimumActiveMachines() - runningMachines.Count;
             var toStartMachines = machines.Where(m => m.Machine.Properties.VmState != "RUNNING")
                 .Take(toStart)
                 .ToList();

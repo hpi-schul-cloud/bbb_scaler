@@ -25,12 +25,13 @@ This solution was built to use the ionos api v5.
   2. Get Memory Utilization via Node Exporter
   3. Check if there are still active meetings
 4. Start Scaling
-  1. If the average workload of all machines is higher than the allowed cpu or memory utilization, start a new instance
-  2. If the workload of an instance has the minimum cpu and memory settings and is still not utilized, shut it down
-  3. If the memory workload of an instance is lower than the down scaling threshold MIN_ALLOWED_MEMORY_WORKLOAD and the memory is higher than DEFAULT_WORKER_MEMORY, decrease memory by 1024 bytes
-  4. If the cpu workload of an instance is lower than the down scaling threshold MIN_ALLOWED_CPU_WORKLOAD and the cores are higher than DEFAULT_WORKER_MEMORY, decrease cores by 1 unit
-  5. If the memory workload of an instance is higher than the scaling threshold MAX_ALLOWED_MEMORY_WORKLOAD and the memory is lower than or equal MAX_WORKER_MEMORY - 1024, increase memory by 1024 bytes
-  6. If the cpu workload of an instance is higher than the scaling threshold MAX_ALLOWED_CPU_WORKLOAD and the cores + 1 are lower than or equal MAX_WORKER_CPU - 1, increase cores by 1 unit
+  1. If the amount of running machines is lower than the current minimum active machines, start new instances
+  2. If the average workload of all machines is higher than the allowed cpu or memory utilization, start a new instance
+  3. If the workload of an instance has the minimum cpu and memory settings and is still not utilized, shut it down
+  4. If the memory workload of an instance is lower than the down scaling threshold MIN_ALLOWED_MEMORY_WORKLOAD and the memory is higher than DEFAULT_WORKER_MEMORY, decrease memory by 1024 bytes
+  5. If the cpu workload of an instance is lower than the down scaling threshold MIN_ALLOWED_CPU_WORKLOAD and the cores are higher than DEFAULT_WORKER_MEMORY, decrease cores by 1 unit
+  6. If the memory workload of an instance is higher than the scaling threshold MAX_ALLOWED_MEMORY_WORKLOAD and the memory is lower than or equal MAX_WORKER_MEMORY - 1024, increase memory by 1024 bytes
+  7. If the cpu workload of an instance is higher than the scaling threshold MAX_ALLOWED_CPU_WORKLOAD and the cores + 1 are lower than or equal MAX_WORKER_CPU - 1, increase cores by 1 unit
 5. Wait for WAITING_TIME miliseconds
   
 ## Settings
@@ -38,7 +39,8 @@ The autoscaler can be setup with environment variables.
 
 Name | Default Value | Description
 --- | --- | --- 
-MINIMUM_ACTIVE_MACHINES | 2 | Amount of big blue button instances that should always active
+MINIMUM_ACTIVE_MACHINES_ON | 2 | Amount of big blue button instances that should be active during "on" period
+MINIMUM_ACTIVE_MACHINES_OFF | 2 | Amount of big blue button instances that should be active during "off"
 MAX_ALLOWED_MEMORY_WORKLOAD | 0.35 | Maximum memory utilization until up scaling starts
 MAX_ALLOWED_CPU_WORKLOAD | 0.35 | Maximum cpu utilization until up scaling starts
 MIN_ALLOWED_MEMORY_WORKLOAD | 0.15 | Minimum memory utilization until down scaling starts
@@ -47,6 +49,11 @@ MAX_WORKER_MEMORY | 16384 | Ceiling limit of memory scaling
 DEFAULT_WORKER_MEMORY | 8192 | Floor limit of memory scaling
 MAX_WORKER_CPU | 4 | Ceiling limit of cpu scaling
 DEFAULT_WORKER_CPU | 2 | Floor limit of cpu scaling
+TIMEZONE | Europe/Germany | Timezone in which time is checked (See '/usr/share/zoneinfo/' for available timezones)
+START_H | 7 | Start hour of on period
+START_MIN | 0 | Start minutes of on period
+END_H | 12 | End hour of on period
+END_MIN | 30 | End minutes of on period
 WAITING_TIME | 300000 | Time in miliseconds until next scaling cyclus starts
 
 Secrets can be also applied using environment variables
