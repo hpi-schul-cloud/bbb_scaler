@@ -41,6 +41,7 @@ Name | Default Value | Description
 --- | --- | --- 
 MINIMUM_ACTIVE_MACHINES_ON | 2 | Amount of big blue button instances that should be active during "on" period
 MINIMUM_ACTIVE_MACHINES_OFF | 2 | Amount of big blue button instances that should be active during "off"
+MAX_SERVER_INCREASE | 3 | Maximum servers to start at once
 MAX_ALLOWED_MEMORY_WORKLOAD | 0.35 | Maximum memory utilization until up scaling starts
 MAX_ALLOWED_CPU_WORKLOAD | 0.35 | Maximum cpu utilization until up scaling starts
 MIN_ALLOWED_MEMORY_WORKLOAD | 0.15 | Minimum memory utilization until down scaling starts

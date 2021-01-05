@@ -20,6 +20,7 @@ namespace HPI.BBB.Autoscaler.Utils
         private static readonly int DEFAULT_WORKER_MEMORY = int.Parse(ConfigReader.GetValue("DEFAULT_WORKER_MEMORY", "DEFAULT", "DEFAULT_WORKER_MEMORY"), CultureInfo.InvariantCulture);
         private static readonly int MAX_WORKER_CPU = int.Parse(ConfigReader.GetValue("MAX_WORKER_CPU", "DEFAULT", "MAX_WORKER_CPU"), CultureInfo.InvariantCulture);
         private static readonly int DEFAULT_WORKER_CPU = int.Parse(ConfigReader.GetValue("DEFAULT_WORKER_CPU", "DEFAULT", "DEFAULT_WORKER_CPU"), CultureInfo.InvariantCulture);
+        private static readonly int MAX_SERVER_INCREASE = int.Parse(ConfigReader.GetValue("MAX_SERVER_INCREASE", "DEFAULT", "MAX_SERVER_INCREASE"), CultureInfo.InvariantCulture);
 
         internal static void ShutDown(ILogger log, List<WorkloadMachineTuple> totalWorkload, BBBAPI bbb, IonosAPI ionos)
         {
@@ -40,10 +41,9 @@ namespace HPI.BBB.Autoscaler.Utils
         internal static async void EnsureMinimumRunningServers(ILogger log, IonosAPI ionos, string[] ionosDataCenterIds)
         {
             var machines = await IonosHelper.GetMachinesByDataCenter(log, ionos, ionosDataCenterIds);
-            var runningMachines = machines.Where(m => m.Machine.Properties.VmState == "RUNNING").ToList();
-            var toStart = TimeHelper.GetMinimumActiveMachines() - runningMachines.Count;
-            var toStartMachines = machines.Where(m => m.Machine.Properties.VmState != "RUNNING")
-                .Take(toStart)
+            var runningMachines = machines.Where(m => m.Machine.Properties.VmState != "SHUTOFF").ToList();
+            var toStartMachines = machines.Where(m => m.Machine.Properties.VmState == "SHUTOFF")
+                .Take(MAX_SERVER_INCREASE)
                 .ToList();
             if (toStartMachines.Count > 0)
             {

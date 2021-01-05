@@ -84,7 +84,7 @@ namespace HPI.BBB.Autoscaler.Jobs
                     if (avarageMemoryWorkload >= MAX_ALLOWED_MEMORY_WORKLOAD || avarageCPUWorkload >= MAX_ALLOWED_CPU_WORKLOAD)
                     {
                         log.LogInformation("Wake up sleeping machine");
-                        var sleepingMachines = machines.Where(m => !runningMachines.Contains(m));
+                        var sleepingMachines = machines.Where(m => m.Machine.Properties.VmState == "SHUTOFF");
                         var toBeTurnedOn = sleepingMachines.FirstOrDefault();
 
                         if (toBeTurnedOn != null)
