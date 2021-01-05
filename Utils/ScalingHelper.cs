@@ -42,7 +42,9 @@ namespace HPI.BBB.Autoscaler.Utils
         {
             var machines = await IonosHelper.GetMachinesByDataCenter(log, ionos, ionosDataCenterIds);
             var runningMachines = machines.Where(m => m.Machine.Properties.VmState != "SHUTOFF").ToList();
+            var toStart = TimeHelper.GetMinimumActiveMachines() - runningMachines.Count;
             var toStartMachines = machines.Where(m => m.Machine.Properties.VmState == "SHUTOFF")
+                .Take(toStart)
                 .Take(MAX_SERVER_INCREASE)
                 .ToList();
             if (toStartMachines.Count > 0)
