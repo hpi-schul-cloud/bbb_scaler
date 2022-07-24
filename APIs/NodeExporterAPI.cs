@@ -29,6 +29,9 @@ namespace HPI.BBB.Autoscaler.APIs
 
             log.LogInformation($"Get Metrics of '{ip}'");
             string url = $"https://{ip}:9100/metrics";
+            if(bool.Parse(ConfigReader.GetValue("BBB_NEW_EXPORTERS", "DEFAULT", "BBB_NEW_EXPORTERS"))) {
+                url = $"https://{ip}/mon/node/";
+            }
 
             // TODO Add Certificate Validation
             log.LogInformation($"Turn cert validation off of '{ip}'");
