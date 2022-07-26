@@ -29,6 +29,9 @@ namespace HPI.BBB.Autoscaler.APIs
 
             log.LogInformation($"Get Metrics of '{ip}'");
             string url = $"https://{ip}:9100/metrics";
+            if(bool.Parse(ConfigReader.GetValue("BBB_NEW_EXPORTERS", "DEFAULT", "BBB_NEW_EXPORTERS"))) {
+                url = $"https://{ip}/mon/node/";
+            }
 
             // TODO Add Certificate Validation
             log.LogInformation($"Turn cert validation off of '{ip}'");
@@ -87,9 +90,13 @@ namespace HPI.BBB.Autoscaler.APIs
 
         private static async Task<float?> GetCPUUtilization(ILogger log, HttpClient client, string ip, string grafanaKey)
         {
+            int port = 9100;
+            if(bool.Parse(ConfigReader.GetValue("BBB_NEW_EXPORTERS", "DEFAULT", "BBB_NEW_EXPORTERS"))) {
+                port = 443;
+            }
             //100 - (avg by(mode)(irate(node_cpu_seconds_total{ mode = "idle"}[1m]))*100)
             //(avg by(instance)(irate(node_cpu_seconds_total{instance = "{ip},job="bbb"}[5m])))
-            string cpuQuery = $"1 - (avg by (instance) (irate(node_cpu_seconds_total{{instance=\"{ip}:9100\", mode=\"idle\"}}[5m])))";
+            string cpuQuery = $"1 - (avg by (instance) (irate(node_cpu_seconds_total{{instance=\"{ip}:{port}\", mode=\"idle\"}}[5m])))";
 
             string url = $"{GRAFANA_ENDPOINT}{cpuQuery}";
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", grafanaKey);
