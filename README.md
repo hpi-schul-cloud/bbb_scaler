@@ -46,7 +46,7 @@ MAX_ALLOWED_MEMORY_WORKLOAD | 0.35 | Maximum memory utilization until up scaling
 MAX_ALLOWED_CPU_WORKLOAD | 0.35 | Maximum cpu utilization until up scaling starts
 MIN_ALLOWED_MEMORY_WORKLOAD | 0.15 | Minimum memory utilization until down scaling starts
 MIN_ALLOWED_CPU_WORKLOAD | 0.05 | Minimum cpu utilization until down scaling starts
-BBB_NEW_EXPORTERS | false | Use the node exporter URLs from the [ebbba bigbluebutton role](https://github.com/ebbba-org/ansible-role-bigbluebutton) (/mon/node instead of /metrics on port 9100)
+BBB_EBBBA_EXPORTERS | false | Use the node exporter URLs from the [ebbba bigbluebutton role](https://github.com/ebbba-org/ansible-role-bigbluebutton) (/mon/node instead of /metrics on port 9100)
 MAX_WORKER_MEMORY | 16384 | Ceiling limit of memory scaling
 DEFAULT_WORKER_MEMORY | 8192 | Floor limit of memory scaling
 MAX_WORKER_CPU | 4 | Ceiling limit of cpu scaling
