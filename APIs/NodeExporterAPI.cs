@@ -29,7 +29,7 @@ namespace HPI.BBB.Autoscaler.APIs
 
             log.LogInformation($"Get Metrics of '{ip}'");
             string url = $"https://{ip}:9100/metrics";
-            if(bool.Parse(ConfigReader.GetValue("BBB_NEW_EXPORTERS", "DEFAULT", "BBB_NEW_EXPORTERS"))) {
+            if(bool.Parse(ConfigReader.GetValue("BBB_EBBBA_EXPORTERS", "DEFAULT", "BBB_EBBBA_EXPORTERS"))) {
                 url = $"https://{ip}/mon/node/";
             }
 
@@ -91,7 +91,7 @@ namespace HPI.BBB.Autoscaler.APIs
         private static async Task<float?> GetCPUUtilization(ILogger log, HttpClient client, string ip, string grafanaKey)
         {
             int port = 9100;
-            if(bool.Parse(ConfigReader.GetValue("BBB_NEW_EXPORTERS", "DEFAULT", "BBB_NEW_EXPORTERS"))) {
+            if(bool.Parse(ConfigReader.GetValue("BBB_EBBBA_EXPORTERS", "DEFAULT", "BBB_EBBBA_EXPORTERS"))) {
                 port = 443;
             }
             //100 - (avg by(mode)(irate(node_cpu_seconds_total{ mode = "idle"}[1m]))*100)
